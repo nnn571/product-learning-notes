@@ -1,23 +1,24 @@
 window.mountCaseDemo=(host,data)=>{
 const E=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 const topic=data.slug.slice(0,2);let n=-1,mode='normal';
-const names={'01':'需求：一句原话怎样变成需求卡？','02':'指标：同一批人怎样形成漏斗？','03':'提示词：规则怎样改变分类结果？','04':'工作流：一个字段怎样影响回复？','06':'评测：一条失败怎样定位并修复？'};
-const modes={'01':[['normal','有观察证据'],['missing','只有用户原话，证据不足']],'02':[['normal','同口径人数'],['mixed','混用次数、订单与人数']],'03':[['normal','补齐规则与输出'],['conflict','追加规则产生冲突']],'04':[['normal','激活字段丢失 → 修复'],['unknown','查询状态未知'],['timeout','工具超时']],'06':[['normal','产品错误 → 修复回归'],['grader','评分标准占位 → 修复裁判']]};
+const names={'01':'需求：一句“帮我挪个按钮”，怎样变成一张需求卡？','02':'指标：同一批人怎样形成漏斗？','03':'提示词：规则怎样改变分类结果？','04':'工作流：一个字段怎样影响回复？','06':'评测：一条失败怎样定位并修复？'};
+const modes={'01':[['normal','能看到他实际怎么操作'],['missing','只有一句原话，还没看到实际操作']],'02':[['normal','同口径人数'],['mixed','混用次数、订单与人数']],'03':[['normal','补齐规则与输出'],['conflict','追加规则产生冲突']],'04':[['normal','激活字段丢失 → 修复'],['unknown','查询状态未知'],['timeout','工具超时']],'06':[['normal','产品错误 → 修复回归'],['grader','评分标准占位 → 修复裁判']]};
 host.innerHTML=`<div class="top"><div><p class="eyebrow">LIVE CASE / 看数据如何变化</p><h2>${names[topic]}</h2></div><span class="badge">虚构案例 · 预设结果</span></div><label>切换情境 <select id="case-mode">${modes[topic].map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select></label><p class="caption">每次点击推进一次状态变化。这里的记录和回答均为教学构造，没有调用真实模型、查询业务或提交操作。</p><div class="demo-grid"><div id="case-picture" class="case-picture"></div><div class="state-panel"><h3 id="case-title"></h3><p id="case-explain"></p><div id="case-data"></div></div></div><div id="case-change" class="context-strip" role="status" aria-live="polite"></div><div class="controls demo-controls"><button id="case-prev">← 回看一步</button><button id="case-next">开始演示 →</button><button id="case-reset">重置图与数据</button><span id="case-count"></span></div>`;
 const $=id=>host.querySelector('#'+id),card=(title,body,cls='')=>`<div class="paper ${cls}"><b>${E(title)}</b><div>${body}</div></div>`,tag=(t,c='')=>`<span class="fact ${c}">${E(t)}</span>`,arrow='<div class="transfer-arrow">↓</div>';
 function set(title,explain,picture,payload,change){$('case-title').textContent=title;$('case-explain').textContent=explain;$('case-picture').innerHTML=picture;$('case-data').innerHTML=payload;$('case-change').innerHTML='<b>这一步改变了什么</b><span class="fact">'+E(change)+'</span>';}
-function need(){const missing=mode==='missing',titles=['接住原话','还原完整任务','把信息分三类','比较候选方案','写成需求卡','观察一次试用'];
-let pic=card('用户原话','“把导出按钮移到首页。”');
-if(n>=1)pic+=arrow+'<div class="task-chain">'+['导出','打开邮箱','上传','发送'].map((x,i)=>`<div class="task-token ${i===2?'task-blocked':''}">${x}${i===2?'<small>交接卡点？</small>':''}</div>`).join('<span>→</span>')+'</div>';
-if(n>=2)pic+=arrow+card('证据篮',tag('事实：用户提出移按钮')+tag(missing?'未知：实际操作过程':'模拟观察：导出后还要上传')+tag('假设：交接比找按钮更费时','uncertain'));
-if(n>=3)pic+=arrow+card('方案比较',`<div class="solution ${n>=4&&!missing?'dim':''}">A 移动按钮 · 主要减少找入口</div><div class="solution ${n>=4&&!missing?'chosen':''}">B 共享链接 · 可能减少导出上传</div><div class="solution">C 保持现状 · 不新增研发成本</div>`);
-let payload=card('尚未调查','目前只有一句请求。'),explain='不能把用户说出的方案直接当成已验证的需求。',change='只记录原话，还没有选方案。';
-if(n===0){explain='把“用户说过”与“需求已经成立”分开。';payload=card('原始记录','谁：提交周报的人<br>请求：移动导出按钮<br>频次、耗时和原因：未知');change='原话进入记录，原因仍留空。';}
-if(n===1){explain=missing?'没有看到实际操作；左图是待验证的任务假设。':'模拟观察：用户导出后还要切到邮箱、上传文件再发送。';payload=card('观察记录',missing?'未取得操作记录，不能填具体耗时。':'本例观察到一次操作：找入口20秒，导出与上传80秒。不能代表所有用户。');change=missing?'流程仍是候选假设。':'发现按钮之外的交接步骤。';}
-if(n===2){explain='事实、假设、未知分别放，避免让推测变成结论。';payload=card('下一次核查',missing?'请用户带看最近一次交周报过程。':'再观察不同用户和网络条件，确认交接是否反复造成负担。');change='明确还需要什么证据。';}
-if(n===3){explain='各方案改善的环节不同；共享链接还要核接收人权限。';payload=card('比较依据','A：省找入口时间<br>B：可能省文件交接，但新增权限依赖<br>C：无改造成本，保留当前负担');change='一个方案拆成三个可比较选项。';}
-if(n>=4){explain=missing?'证据不足时，只形成验证计划，不宣布需求成立。':'将方案写成可检查的需求卡，再做小范围试用。';payload=card(missing?'验证卡':'需求卡',missing?'目标：确认真实卡点<br>动作：观察一次完整任务<br>暂不确定：方案与收益':'用户：周报提交者<br>目标：减少文件交接<br>候选：共享链接<br>边界：不自动发送；核接收权限<br>验收：能交付正确报告并记录耗时');change=missing?'下一步是补证据，不是直接开发。':'候选方案附上约束与验收。';}
-if(n===5&&!missing){pic+=arrow+card('模拟试用结果','同一人一次试用：100秒 → 45秒；只支持这一观察。');payload+=card('结论','可继续验证共享链接方案；未证明普遍节省55秒，也没有证实商业收益。');change='新增一次试用证据，结论保持样本边界。';}
+function need(){const missing=mode==='missing',titles=['先听原话','还原完整过程','把信息分成三类','比较几种方案','写成需求卡','找人试用一次'];
+let pic=card('同事的原话','“把导出按钮挪到首页吧。”');
+if(n>=1)pic+=arrow+'<div class="task-chain">'+['导出表格','打开邮箱','上传附件','发给主管'].map((x,i)=>`<div class="task-token ${i===2?'task-blocked':''}">${x}${i===2?'<small>最费事的是这里？</small>':''}</div>`).join('<span>→</span>')+'</div>';
+if(n>=2)pic+=arrow+card('三类信息',tag('事实：他提出要挪按钮')+tag(missing?'还不知道：他实际怎么操作':'亲眼看到：导出后还要另外上传')+tag('猜测：转交文件比找按钮更费时间','uncertain'));
+if(n>=3)pic+=arrow+card('方案比较',`<div class="solution ${n>=4&&!missing?'dim':''}">A 挪按钮 · 省掉找按钮的时间</div><div class="solution ${n>=4&&!missing?'chosen':''}">B 共享链接 · 可能省掉“导出再上传”</div><div class="solution">C 维持现状 · 不花开发成本</div>`);
+let payload=card('还没开始了解','目前只有他说的一句话。'),explain='用户说出口的“解决办法”，不一定就是他真正的需求。',change='只记下了原话，还没选方案。';
+if(n===0){explain='先把“他说了什么”记下来，但别急着把它当成需求。';payload=card('原始记录','谁：每周交周报的同事<br>他说：把导出按钮挪到首页<br>多久一次、花多久、为什么：还不知道');change='原话记下了，原因还空着。';}
+if(n===1){explain=missing?'还没看到他实际怎么操作，左边的流程只是你的推测。':'你请他当面交了一次周报：导出后，他还要切到邮箱、上传文件、再发出去。';payload=card('观察记录',missing?'没看到实际操作，所以不能填具体用时。':'这一次：找按钮用了 20 秒，导出加上传用了 80 秒。<br>只看了一个人一次，不能代表所有人。');change=missing?'流程还只是推测。':'发现按钮之外，还有一道“转交文件”的手续。';}
+if(n===2){explain='把事实、猜测、还不知道的分开放，免得把猜的当成结论。';payload=card('下一步要查',missing?'请他带你走一遍上次交周报的过程。':'再多看几位同事，确认“转交文件”是不是每次都很麻烦。');change='清楚了还缺哪些证据。';}
+if(n===3){explain='每个方案解决的是不同环节。选共享链接的话，还要确认主管有没有权限打开。';payload=card('比较','A 挪按钮：省掉找按钮的时间<br>B 共享链接：可能省掉转交文件，但要处理查看权限<br>C 维持现状：不花开发成本，但麻烦还在');change='一个“挪按钮”的请求，变成了三个可以比较的选项。';}
+if(n>=4){explain=missing?'证据还不够，先写一份“验证计划”，不要宣布需求成立。':'把选中的方案写成需求卡，再找人小范围试用。';payload=card(missing?'验证计划':'需求卡',missing?'目标：弄清他到底卡在哪<br>下一步：看他完整交一次周报<br>暂时定不了：选哪个方案、能省多少时间':'用户：每周交周报的同事<br>目标：少一道“导出再上传”的手续<br>方案：共享链接<br>边界：不替他自动发送；先确认主管能打开<br>怎样算做成：主管能看到正确的周报，并记录用时');change=missing?'下一步是补证据，而不是直接开发。':'方案带上了边界和验收标准。';}
+if(n===5&&missing){explain='证据还不够，现在没有新方案可以试；先按验证计划，去看他实际交一次周报。';change='试用要等弄清卡点之后再做。';}
+if(n===5&&!missing){explain='请同事用共享链接实际交一次周报，你在旁边记录结果。';pic+=arrow+card('试用结果','同一位同事用共享链接交了一次：从 100 秒降到 45 秒。');payload+=card('能得出的结论','共享链接方案值得继续试。但只试了一个人一次，不能说“每个人都能省 55 秒”，更不能说已经带来了业务收益。');change='多了一次试用证据，结论只说到证据能支持的程度。';}
 set(n<0?'先听用户怎么说':titles[n],explain,pic,payload,change);}
 function metric(){const mixed=mode==='mixed',labels=['访问','点击','下单','支付'],values=[1000,300,60,57],titles=['看到原始记录','统一窗口和单位','按人去重','逐层算转化','核算交易额','观察护栏与结论'];let pic='<div class="funnel">';
 for(let i=0;i<4;i++){const visible=n>=2||n>=0&&mixed;pic+=`<div class="funnel-row"><span>${labels[i]}</span><div class="funnel-track"><i style="width:${visible?values[i]/10:0}%"></i></div><b>${visible?values[i]:'—'}${mixed?['次','次','单','人'][i]:'人'}</b></div>`;}pic+='</div>';
